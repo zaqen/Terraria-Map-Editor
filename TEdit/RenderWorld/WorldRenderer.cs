@@ -394,10 +394,10 @@ namespace TEdit.RenderWorld
             double multDiff = longLen == 0 ? shortLen : (double)shortLen / (double)longLen;
  
             if (yLonger) {
-                for (int i = 0; i != longLen; i += inc) { yield return new PointInt32(x0 + (int)(i * multDiff), y0 + i); }
+                for (int i = 0; i != longLen + inc; i += inc) { yield return new PointInt32(x0 + (int)(i * multDiff), y0 + i); }
             }
             else {
-                for (int i = 0; i != longLen; i += inc) { yield return new PointInt32(x0 + i, y0 + (int)(i * multDiff)); }
+                for (int i = 0; i != longLen + inc; i += inc) { yield return new PointInt32(x0 + i, y0 + (int)(i * multDiff)); }
             }
         }
 

@@ -22,7 +22,9 @@ namespace TEdit.Tools
         private int _MinHeight;
         private int _MinWidth;
         private ToolAnchorMode _Mode;
-        private PointInt32 _Offset;
+        private ToolAnchorMode _PreviewMode;
+        private PointInt32 _Offset = new PointInt32();
+        private PointInt32 _PreviewOffset = new PointInt32();
         private int _OutlineThickness;
         private int _Width;
         private ToolBrushShape _brushShape;
@@ -41,6 +43,7 @@ namespace TEdit.Tools
             _IsSquare = true;
             _brushShape = ToolBrushShape.Round;
             _Mode = ToolAnchorMode.Center;
+            _PreviewMode = ToolAnchorMode.TopLeft;
             CalcOffset();
             AnchorModes = Enum.GetValues(typeof (ToolAnchorMode));
             BrushShapes = Enum.GetValues(typeof (ToolBrushShape));
@@ -52,29 +55,13 @@ namespace TEdit.Tools
         public ToolAnchorMode Mode
         {
             get { return _Mode; }
-            set
-            {
-                if (_Mode != value)
-                {
-                    _Mode = value;
-                    RaisePropertyChanged("Mode");
-                    CalcOffset();
-                }
-            }
+            set { SetProperty(ref _Mode, ref value, "Mode"); CalcOffset(); }
         }
 
         public ToolBrushShape BrushShape
         {
             get { return _brushShape; }
-            set
-            {
-                if (_brushShape != value)
-                {
-                    _brushShape = value;
-                    RaisePropertyChanged("BrushShape");
-                    CalcOffset();
-                }
-            }
+            set { SetProperty(ref _brushShape, ref value, "BrushShape"); CalcOffset(); }
         }
 
         public int Width
@@ -199,42 +186,20 @@ namespace TEdit.Tools
         public bool IsSquare
         {
             get { return _IsSquare; }
-            set
-            {
-                if (_IsSquare != value)
-                {
-                    _IsSquare = value;
-                    RaisePropertyChanged("IsSquare");
-                }
-            }
+            set { SetProperty(ref _IsSquare, ref value, "IsSquare"); }
         }
 
         public bool IsOutline
         {
             get { return _IsOutline; }
-            set
-            {
-                if (_IsOutline != value)
-                {
-                    _IsOutline = value;
-                    RaisePropertyChanged("IsOutline");
-                }
-            }
+            set { SetProperty(ref _IsOutline, ref value, "IsOutline"); }
         }
 
         public int OutlineThickness
         {
             get { return _OutlineThickness; }
-            set
-            {
-                if (_OutlineThickness != value)
-                {
-                    _OutlineThickness = value;
-                    RaisePropertyChanged("OutlineThickness");
-                }
-            }
+            set { SetProperty(ref _OutlineThickness, ref value, "OutlineThickness"); }
         }
-
 
         public int MaxOutlineThickness
         {
@@ -271,29 +236,14 @@ namespace TEdit.Tools
         public PointInt32 Offset
         {
             get { return _Offset; }
-            set
-            {
-                if (_Offset != value)
-                {
-                    _Offset = value;
-                    RaisePropertyChanged("Offset");
-                }
-            }
+            set { SetProperty(ref _Offset, ref value, "Offset"); }
         }
 
         public WriteableBitmap Image
         {
             get { return _Image; }
-            set
-            {
-                if (_Image != value)
-                {
-                    _Image = value;
-                    RaisePropertyChanged("Image");
-                }
-            }
+            set { SetProperty(ref _Image, ref value, "Image"); }
         }
-
 
         public event EventHandler ToolPreviewRequest;
 
@@ -303,45 +253,34 @@ namespace TEdit.Tools
                 ToolPreviewRequest(sender, e);
         }
 
+        public ToolAnchorMode PreviewMode {
+            get { return _PreviewMode; }
+            set { SetProperty(ref _PreviewMode, ref value, "PreviewMode"); CalcOffset(false); }
+        }
+        public PointInt32 PreviewOffset {
+            get { return _PreviewOffset; }
+            set { SetProperty(ref _PreviewOffset, ref value, "PreviewOffset"); }
+        }
 
-        private void CalcOffset()
-        {
-            switch (Mode)
-            {
-                case ToolAnchorMode.Center:
-                    Offset = new PointInt32(Width/2, Height/2);
-                    break;
-                case ToolAnchorMode.TopLeft:
-                    Offset = new PointInt32(0, 0);
-                    break;
-                case ToolAnchorMode.TopCenter:
-                    Offset = new PointInt32(Width/2, 0);
-                    break;
-                case ToolAnchorMode.TopRight:
-                    Offset = new PointInt32(Width, 0);
-                    break;
-                case ToolAnchorMode.MiddleRight:
-                    Offset = new PointInt32(Width, Height/2);
-                    break;
-                case ToolAnchorMode.BottomRight:
-                    Offset = new PointInt32(Width, Height);
-                    break;
-                case ToolAnchorMode.BottomCenter:
-                    Offset = new PointInt32(Width/2, Height);
-                    break;
-                case ToolAnchorMode.BottomLeft:
-                    Offset = new PointInt32(0, Height);
-                    break;
-                case ToolAnchorMode.MiddleLeft:
-                    Offset = new PointInt32(0, Height/2);
-                    break;
-                default:
-                    Offset = new PointInt32(0, 0);
-                    break;
-            }
+        private void CalcOffset(ref PointInt32 off, ToolAnchorMode mode, int W, int H) {
+            off = new PointInt32();
+
+            if (mode.Has(ToolAnchorModeParts.Left))   off.X = 0;
+            if (mode.Has(ToolAnchorModeParts.Center)) off.X = W/2;
+            if (mode.Has(ToolAnchorModeParts.Right))  off.X = W;
+            
+            if (mode.Has(ToolAnchorModeParts.Top))    off.Y = 0;
+            if (mode.Has(ToolAnchorModeParts.Middle)) off.Y = H/2;
+            if (mode.Has(ToolAnchorModeParts.Bottom)) off.Y = H;
+        }
+        private void CalcOffset(bool triggerPreview = true) {
+            CalcOffset(ref _Offset, Mode, _Width, _Height);
+            if (_Image != null) CalcOffset(ref _PreviewOffset, PreviewMode, (int)_Image.Width - 1, (int)_Image.Height - 1);
+            RaisePropertyChanged("Offset");
+            RaisePropertyChanged("PreviewOffset");
+
             MaxOutlineThickness = (int) Math.Max(1, Math.Min(Math.Floor(Height/2.0), Math.Floor(Width/2.0)));
-
-            OnToolPreviewRequest(this, new EventArgs());
+            if (triggerPreview) OnToolPreviewRequest(this, new EventArgs());
         }
     }
 }

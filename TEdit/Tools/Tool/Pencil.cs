@@ -30,6 +30,7 @@ namespace TEdit.Tools.Tool
         private Orientation _snapDirection = Orientation.Horizontal;
         private PointInt32? _startPoint;
         private PointInt32? _endPoint;
+        private Color previewColor = new Color(0, 90, 255, 127);
         [Import]
         private TilePicker _tilePicker;
         [Import("World", typeof(World))]
@@ -107,8 +108,71 @@ namespace TEdit.Tools.Tool
 
         public override bool MoveTool(TileMouseEventArgs e)
         {
+            WriteableBitmap bmp; 
+            
             if (_startPoint != null) _endPoint = e.Tile;
             CheckDirectionandDraw(e);
+            ToolAnchorMode mode = ToolAnchorMode.Center;
+
+            // Line draw preview
+            if (_isRightDown && _startPoint != null && _endPoint != null) {
+                var sp = (PointInt32)_startPoint;
+                var ep = (PointInt32)_endPoint;
+                var delta = ep - sp;
+                var rect = new RectI(new PointInt32(), new SizeInt32(Math.Abs(delta.X) + 1, Math.Abs(delta.Y) + 1));
+
+                // figure out exactly which PreviewMode
+                mode = 0;
+                if      (delta.X <  0) mode += (int)ToolAnchorModeParts.Left;
+                else if (delta.X == 0) mode += (int)ToolAnchorModeParts.Center;
+                else if (delta.X >  0) mode += (int)ToolAnchorModeParts.Right;
+
+                if      (delta.Y <  0) mode += (int)ToolAnchorModeParts.Top;
+                else if (delta.Y == 0) mode += (int)ToolAnchorModeParts.Middle;
+                else if (delta.Y >  0) mode += (int)ToolAnchorModeParts.Bottom;
+
+                // which direction to draw the line
+                var linePnts = new PointInt32[2];
+                switch (mode) {
+                    case ToolAnchorMode.TopLeft:     linePnts = new[] { rect.BottomRight, rect.TopLeft }; break;
+                    case ToolAnchorMode.TopRight:    linePnts = new[] { rect.BottomLeft, rect.TopRight }; break;
+                    case ToolAnchorMode.BottomLeft:  linePnts = new[] { rect.TopRight, rect.BottomLeft }; break;
+                    case ToolAnchorMode.BottomRight: linePnts = new[] { rect.TopLeft, rect.BottomRight }; break;
+                    default:  // has middle or center, order doesn't matter
+                        linePnts = new[] { rect.TopLeft, rect.BottomRight };
+                        break;
+                }
+
+                bmp = new WriteableBitmap(
+                    rect.W,
+                    rect.H,
+                    96,
+                    96,
+                    System.Windows.Media.PixelFormats.Bgra32,
+                    null);
+
+                bmp.Clear();
+                foreach (PointInt32 p in WorldRenderer.DrawLine(linePnts[0], linePnts[1])) {
+                    if (_selection.IsValid(p)) bmp.SetPixel(p.X, p.Y, previewColor);
+                }
+            }
+            // Single dot
+            else {
+                bmp = new WriteableBitmap(
+                    1,
+                    1,
+                    96,
+                    96,
+                    System.Windows.Media.PixelFormats.Bgra32,
+                    null);
+
+                bmp.Clear();
+                bmp.SetPixel(0, 0, previewColor);
+            }
+
+            _properties.Image = bmp;
+            _properties.PreviewMode = mode;
+            
             return false;
         }
 
@@ -134,52 +198,25 @@ namespace TEdit.Tools.Tool
             }
         }
 
-        public override WriteableBitmap PreviewTool() {
-            var c = new Color(0, 90, 255, 127);
-            WriteableBitmap bmp;
-            
-            // Line draw preview
-            if (_isRightDown && _startPoint != null && _endPoint != null) {
-                var sp = (PointInt32)_startPoint;
-                var ep = (PointInt32)_endPoint;                
-                var delta = sp - ep;
-                var upperLeft = new PointInt32(sp.X < ep.X ? sp.X : ep.X,
-                                               sp.Y < ep.Y ? sp.Y : ep.Y);
-                var rect = new RectI(upperLeft, new SizeInt32(Math.Abs(delta.X), Math.Abs(delta.Y)));
+        public override WriteableBitmap PreviewTool() {            
+            var bmp = new WriteableBitmap(
+                1,
+                1,
+                96,
+                96,
+                System.Windows.Media.PixelFormats.Bgra32,
+                null);
 
-                bmp = new WriteableBitmap(
-                    rect.W,
-                    rect.H,
-                    96,
-                    96,
-                    System.Windows.Media.PixelFormats.Bgra32,
-                    null);
-
-                bmp.Clear();
-                foreach (PointInt32 p in WorldRenderer.DrawLine(rect.TopLeft, rect.BottomRight)) {
-                    if (_selection.IsValid(p)) bmp.SetPixel(p.X, p.Y, c);
-                }
-            }
-            // Single dot
-            else {
-                bmp = new WriteableBitmap(
-                    1,
-                    1,
-                    96,
-                    96,
-                    System.Windows.Media.PixelFormats.Bgra32,
-                    null);
-
-                bmp.Clear();
-                bmp.SetPixel(0, 0, c);                
-            }
+            bmp.Clear();
+            bmp.SetPixel(0, 0, previewColor);
 
             return bmp;
         }
 
         private void DrawLine(PointInt32 endPoint)
         {
-            foreach (PointInt32 p in WorldRenderer.DrawLine((PointInt32)_startPoint, endPoint))
+            var startPoint = (PointInt32)_startPoint;
+            foreach (PointInt32 p in WorldRenderer.DrawLine(startPoint, endPoint))
             {
                 if (_selection.IsValid(p))
                 {
@@ -191,6 +228,10 @@ namespace TEdit.Tools.Tool
                     _renderer.UpdateWorldImage(p);
                 }
             }
+
+            // Make sure the actual corners are defined
+            /* if (_selection.IsValid(startPoint) bmp.SetPixel(startPoint.X, startPoint.Y, previewColor);
+            if (_selection.IsValid(endPoint)   bmp.SetPixel(endPoint.X, endPoint.Y, previewColor); */
         }
     }
 }

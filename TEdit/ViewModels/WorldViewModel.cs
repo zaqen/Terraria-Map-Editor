@@ -288,7 +288,7 @@ namespace TEdit.ViewModels
 
         public PointInt32 ToolLocation
         {
-            get { return _mouseOverTile - ToolProperties.Offset; }
+            get { return _mouseOverTile - ToolProperties.Offset - ToolProperties.PreviewOffset; }
         }
 
         public PointInt32 MouseDownTile
@@ -725,6 +725,8 @@ namespace TEdit.ViewModels
 
                 if (ActiveTool != null)
                     ActiveTool.MoveTool(e);
+                
+                MouseOverTile = e.Tile;  // Reset it again for MoveTool previews
             }
         }
 
