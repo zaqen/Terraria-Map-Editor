@@ -32,6 +32,7 @@ namespace TEdit.Tools.Tool
         private SelectionArea _selection;
 
         private PointInt32 _startPoint;
+        private PointInt32 _endPoint;
         [Import]
         private TilePicker _tilePicker;
         [Import("World", typeof(World))]
@@ -143,6 +144,12 @@ namespace TEdit.Tools.Tool
         private void CheckDirectionandDraw(TileMouseEventArgs e)
         {
             PointInt32 p = e.Tile;
+            // Free range draw only
+            /* if (_isLeftDown && !_isRightDown) {
+                DrawLine(p);
+                _startPoint = p;
+            } */
+            
             if (_isRightDown)
             {
                 if (_isLeftDown)
@@ -214,16 +221,16 @@ namespace TEdit.Tools.Tool
 
 
 
-                        var interrior = new Int32Rect(x0 + _properties.OutlineThickness,
-                                                      y0 + _properties.OutlineThickness,
-                                                      _properties.Width - (_properties.OutlineThickness * 2),
-                                                      _properties.Height - (_properties.OutlineThickness * 2));
+                        var interior = new Int32Rect(x0 + _properties.OutlineThickness,
+                                                     y0 + _properties.OutlineThickness,
+                                                     _properties.Width - (_properties.OutlineThickness * 2),
+                                                     _properties.Height - (_properties.OutlineThickness * 2));
 
                         // Erase center
-                        FillRectangle(interrior, ref eraser);
+                        FillRectangle(interior, ref eraser);
                         // Fill center
                         if (wall.Wall.IsActive)
-                            FillRectangle(interrior, ref wall);
+                            FillRectangle(interior, ref wall);
                         // Draw outline
                         if (outline.Tile.IsActive)
                         {

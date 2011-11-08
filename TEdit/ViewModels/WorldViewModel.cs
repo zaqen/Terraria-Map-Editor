@@ -699,8 +699,6 @@ namespace TEdit.ViewModels
 
         private void OnMouseOverPixel(TileMouseEventArgs e)
         {
-            MouseOverTile = e.Tile;
-
             if ((e.Tile.X < _world.Header.WorldBounds.W &&
                  e.Tile.Y < _world.Header.WorldBounds.H &&
                  e.Tile.X >= 0 &&
@@ -726,8 +724,9 @@ namespace TEdit.ViewModels
                 if (ActiveTool != null)
                     ActiveTool.MoveTool(e);
                 
-                MouseOverTile = e.Tile;  // Reset it again for MoveTool previews
             }
+
+            MouseOverTile = e.Tile;  // Set last as PreviewOffset may have been changed
         }
 
         private void OnMouseDownPixel(TileMouseEventArgs e)

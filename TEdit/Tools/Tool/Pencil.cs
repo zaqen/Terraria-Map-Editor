@@ -172,7 +172,7 @@ namespace TEdit.Tools.Tool
 
             _properties.Image = bmp;
             _properties.PreviewMode = mode;
-            
+
             return false;
         }
 
